@@ -1,3 +1,4 @@
+from os import remove
 from PIL import Image 
 from collections import defaultdict
 
@@ -19,6 +20,14 @@ letters_and_numbers = {
 
 
 def create_letter_print(color: tuple) -> str:
+    """Create a string from the given color
+
+    Args:
+        color (tuple): RGB color given as a tuple
+
+    Returns:
+        str: rgb + each color in the tuple
+    """
     result = "rgb"
 
     for i in color:
@@ -31,6 +40,14 @@ def create_letter_print(color: tuple) -> str:
 
 
 def add_rgb_on_color_band(color_band: list[tuple]) -> list[tuple]:
+    """creates a tag representing the rgb color used for the current band
+
+    Args:
+        color_band (list[tuple]): list of color tuples on which the tag is added
+
+    Returns:
+        list[tuple]: color band with rgb color tag on it
+    """
     white, black, grey = (0, 0, 0), (255, 255, 255), (192, 192, 192)
     line, column = 7, 11
     letter_height = len(letters_and_numbers.get("r"))
@@ -53,7 +70,6 @@ def add_rgb_on_color_band(color_band: list[tuple]) -> list[tuple]:
                     finally:
                         column += 1
                 line += 1
-
                 column -= len(j)
             spaces = 3
             if (i+1) % 3 == 0:
@@ -61,7 +77,6 @@ def add_rgb_on_color_band(color_band: list[tuple]) -> list[tuple]:
 
             line = int(letter_height/2)
             column += letter_width + spaces
-            
     return color_band 
 
 
@@ -80,7 +95,7 @@ def round_pixel_color(pixel: tuple, step: int=16) -> tuple:
     return (pixel[0] - pixel[0] % step, pixel[1] - pixel[1] % step, pixel[2] - pixel[2] % step)
 
 
-def normalize_to_permille(color_list: list[tuple]) -> list[tuple]:
+def normalize(color_list: list[tuple], per: int, rounding: int) -> list[tuple]:
     """All of the pixels of the given image have been counted, 
     this function normalize them to permille and returns a list of tuple
 
@@ -93,13 +108,14 @@ def normalize_to_permille(color_list: list[tuple]) -> list[tuple]:
     total = sum(list(map(lambda val: val[1], color_list)))
     full = 0
     result = []
-    for i in color_list:
-        permille = (i[1] / total) * 1000
-        if permille < 1:
-            continue
-        full += round(permille)
 
-        result.append((i[0], round(permille)))
+    for i in color_list:
+        tmp = (i[1] / total) * per
+        if tmp < 1:
+            continue
+        full += round(tmp)
+
+        result.append((i[0], round(tmp, rounding)))
 
     return result
 
@@ -120,23 +136,47 @@ def create_color_palette_image(colors: list[tuple]):
 
     im.save("src\out\color_palette.jpg")
 
-    
-with Image.open("src\img\knowyourself.jpg", "r") as img:
-    pix_val = list(img.getdata())
 
-    colors_counted = defaultdict(int)
-    for i in pix_val:
-        rounded_pixel = round_pixel_color(i)
+def folder_cleanup():
+    try:
+        remove("src\out\color_palette.csv")
+    except:
+        pass
 
-        if colors_counted.get(rounded_pixel):
-            colors_counted[rounded_pixel] += 1
-            continue
-        colors_counted[rounded_pixel] = 1
 
-    
-    result = sorted(colors_counted.items(), key=lambda item:item[1], reverse=True)
-    
-    normalized_result = normalize_to_permille(result[:5])
+def write_titles() -> str:
+    return "rgb_color;percentage;\n"
 
-    create_color_palette_image(normalized_result)
 
+def create_color_palette_file(colors: list[tuple]):
+    folder_cleanup()
+
+    with open("src\out\color_palette.csv", "a") as f:
+        f.write(write_titles())
+        for color in colors:
+            f.write(f"{color[0]};{color[1]}\n")
+
+
+def get_colors_from_picture(url: str = "", number_of_colors: int = 5):
+    with Image.open("src\img\knowyourself.jpg", "r") as img:
+        pix_val = list(img.getdata())
+
+        colors_counted = defaultdict(int)
+        for i in pix_val:
+            rounded_pixel = round_pixel_color(i)
+
+            if colors_counted.get(rounded_pixel):
+                colors_counted[rounded_pixel] += 1
+                continue
+            colors_counted[rounded_pixel] = 1
+
+        sorted_colors_by_count = sorted(colors_counted.items(), key=lambda item:item[1], reverse=True)
+
+        if number_of_colors > 5:
+            if number_of_colors > len(sorted_colors_by_count):
+                create_color_palette_file(normalize(sorted_colors_by_count, 100, 2))
+            create_color_palette_file(normalize(sorted_colors_by_count[:number_of_colors], 100, 2))
+        else:
+            create_color_palette_image(normalize(sorted_colors_by_count[:number_of_colors], 1000, 0))
+
+get_colors_from_picture()

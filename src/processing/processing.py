@@ -1,21 +1,21 @@
-from os import remove
+from os import remove, path
 from PIL import Image 
 from collections import defaultdict
 
 letters_and_numbers = {
-    "r": ["00000000 ","01111110 ","011111110","011000110","0110 0110","011000110","01111110 ","01111110 ","011000110","0110 0110","0110 0110","0110 0110","0110 0110","0000 0000"],
+    "r": ["00000000 ","011111100","011111110","011000110","0110 0110","011000110","011111100","011111100","011000110","0110 0110","0110 0110","0110 0110","0110 0110","0000 0000"],
     "g": [" 0000000 ","001111100","011111110","011000000","0110     ","01100000 ","011001100","011001110","011000110","0110 0110","011000110","011111110","001111100"," 0000000 "],
     "b": ["00000000 ","011111100","011111110","011000110","0110 0110","011000110","011111100","011111100","011000110","0110 0110","011000110","011111110","011111100","00000000 "],
-    "1": ["000000000","022222110","022222110","022000110","0220 0110","022000110","022222110","022222110","022000110","0220 0110","022000110","022222110","022222110","000000000"],
-    "2": ["000000000","021111120","011111110","022000110","0220 0110","022000110","021111110","011111120","011000220","0110 0220","011000220","011111110","011111110","000000000"],
-    "3": ["000000000","011111120","011111110","022000110","0220 0110","022000110","011111110","011111110","022000110","0220 0110","022000110","011111110","011111120","000000000"],
-    "4": ["000000000","011222110","011222110","011000110","0110 0110","011000110","011111110","011111110","022000110","0220 0110","022000110","022222110","022222110","000000000"],
-    "5": ["000000000","011111110","011111110","011000220","0110 0220","011000220","011111120","011111110","022000110","0220 0110","022000110","011111110","011111120","000000000"],
-    "6": ["000000000","011222220","011222220","011000220","0110 0220","011000220","011111120","011111110","011000110","0110 0110","011000110","011111110","021111120","000000000"],
-    "7": ["000000000","011111110","011111110","022000110","0220 0110","022000110","022222110","022222110","022000110","0220 0110","022000110","022222110","022222110","000000000"],
-    "8": ["000000000","021111120","011111110","011000110","0110 0110","011000110","021111120","021111120","011000110","0110 0110","011000110","011111110","021111120","000000000"],
-    "9": ["000000000","021111120","011111110","011000110","0110 0110","011000110","011111110","021111110","022000110","0220 0110","022000110","022222110","022222110","000000000"],
-    "0": ["000000000","021111120","011111110","011000110","0110 0110","011000110","011222110","011222110","011000110","0110 0110","011000110","011111110","021111120","000000000"]
+    "1": ["     0000","     0110","     0110","     0110","     0110","     0110","     0110","     0110","     0110","     0110","     0110","     0110","     0110","     0000"],
+    "2": [" 0000000 ","001111100","011111110","000000110","     0110"," 00000110","001111110","011111100","01100000 ","0110     ","011000000","011111110","011111110","000000000"],
+    "3": ["00000000 ","011111100","011111110","000000110","     0110"," 00000110"," 01111110"," 01111110"," 00000110","     0110","000000110","011111110","011111100","00000000 "],
+    "4": ["0000 0000","0110 0110","0110 0110","0110 0110","0110 0110","011000110","011111110","011111110","000000110","     0110","     0110","     0110","     0110","     0000"],
+    "5": ["000000000","011111110","011111110","011000000","0110     ","01100000 ","011111100","011111110","000000110","     0110","000000110","011111110","011111100","00000000 "],
+    "6": ["0000     ","0110     ","0110     ","0110     ","0110     ","01100000 ","011111100","011111110","011000110","0110 0110","011000110","011111110","001111100"," 0000000 "],
+    "7": ["000000000","011111110","011111110","000000110","     0110","     0110","     0110","     0110","     0110","     0110","     0110","     0110","     0110","     0000"],
+    "8": [" 0000000 ","001111100","011111110","011000110","0110 0110","011000110","001111100","001111100","011000110","0110 0110","011000110","011111110","001111100"," 0000000 "],
+    "9": [" 0000000 ","001111100","011111110","011000110","0110 0110","011000110","011111110","001111110"," 00000110","     0110","     0110","     0110","     0110","     0000"],
+    "0": [" 0000000 ","001111100","011111110","011000110","0110 0110","0110 0110","0110 0110","0110 0110","0110 0110","0110 0110","011000110","011111110","001111100"," 0000000 "]
 }
 
 
@@ -26,20 +26,19 @@ def create_letter_print(color: tuple) -> str:
         color (tuple): RGB color given as a tuple
 
     Returns:
-        str: rgb + each color in the tuple
+        str: rgb + each numerical color value (e.g. "RGB 123 045 789")
     """
     result = "rgb"
 
     for i in color:
-        if i == 0:
-            result+= "000"
-            continue
+        while len(str(i)) < 3:
+            i = "0" + str(i)
         result += str(i)
     
     return result
 
 
-def add_rgb_on_color_band(color_band: list[tuple]) -> list[tuple]:
+def add_rgb_on_color_band(color_band: list[tuple], width_height) -> list[tuple]:
     """creates a tag representing the rgb color used for the current band
 
     Args:
@@ -54,17 +53,17 @@ def add_rgb_on_color_band(color_band: list[tuple]) -> list[tuple]:
     letter_width = len(letters_and_numbers.get("r")[0])
     letter_print = create_letter_print(color_band[0])
 
-    if len(color_band) / 1000 > letter_height*2: 
+    if len(color_band) / width_height > letter_height*2: 
         for i in range(len(letter_print)):
             for j in letters_and_numbers.get(letter_print[i]):
                 for k in j:
                     try:
                         if int(k) == 1:
-                            color_band[line*1000 + column] = white
+                            color_band[line*width_height + column] = white
                         elif int(k) == 2:
-                            color_band[line*1000 + column] = grey
+                            color_band[line*width_height + column] = grey
                         else:
-                            color_band[line*1000 + column] = black
+                            color_band[line*width_height + column] = black
                     except:
                         pass
                     finally:
@@ -73,7 +72,7 @@ def add_rgb_on_color_band(color_band: list[tuple]) -> list[tuple]:
                 column -= len(j)
             spaces = 3
             if (i+1) % 3 == 0:
-                spaces += 3
+                spaces += 6
 
             line = int(letter_height/2)
             column += letter_width + spaces
@@ -121,25 +120,35 @@ def normalize(color_list: list[tuple], per: int, rounding: int) -> list[tuple]:
 
 
 def create_color_palette_image(colors: list[tuple]):
-    im = Image.new(mode="RGB", size=(1000, 1000))
+    wh = 500
+    im = Image.new(mode="RGB", size=(wh, wh))
     pixels = []
     start, end = 0, 0
 
     for color in colors:
         rgb_tuple, percentage = color
-        size = round(percentage) * 1000
+        size = round(percentage) * wh
         end += size
-        pixels[start: end] = add_rgb_on_color_band([rgb_tuple] * size)
+        pixels[start: end] = add_rgb_on_color_band([rgb_tuple] * size, wh)
         start = end + 1
 
     im.putdata(pixels)
 
-    im.save("src\out\color_palette.jpg")
+    im.save("src\out\color_palette.png", bitmap_format="png")
 
 
 def folder_cleanup():
+    """
+    Cleans the output folder of all possibly created files.
+    """
+
     try:
-        remove("src\out\color_palette.csv")
+        if path.exists("src\out\color_palette.csv"):
+            remove(dir_fd="src\out\*")
+        if path.exists("src\out\color_palette.png"):
+            remove("src\out\color_palette.png")
+        if path.exists("src\out\color_palette.jpg"):
+            remove("src\out\color_palette.jpg")
     except:
         pass
 
@@ -149,8 +158,6 @@ def write_titles() -> str:
 
 
 def create_color_palette_file(colors: list[tuple]):
-    folder_cleanup()
-
     with open("src\out\color_palette.csv", "a") as f:
         f.write(write_titles())
         for color in colors:
@@ -158,7 +165,8 @@ def create_color_palette_file(colors: list[tuple]):
 
 
 def get_colors_from_picture(url: str = "", number_of_colors: int = 5):
-    with Image.open("src\img\knowyourself.jpg", "r") as img:
+    folder_cleanup()
+    with Image.open(url, "r") as img:
         pix_val = list(img.getdata())
 
         colors_counted = defaultdict(int)
@@ -177,6 +185,6 @@ def get_colors_from_picture(url: str = "", number_of_colors: int = 5):
                 create_color_palette_file(normalize(sorted_colors_by_count, 100, 2))
             create_color_palette_file(normalize(sorted_colors_by_count[:number_of_colors], 100, 2))
         else:
-            create_color_palette_image(normalize(sorted_colors_by_count[:number_of_colors], 1000, 0))
+            create_color_palette_image(normalize(sorted_colors_by_count[:number_of_colors], 500, 0))
 
-get_colors_from_picture()
+get_colors_from_picture(r"C:\Users\antod\code\PictureColorPalette\src\img\knowyourself.jpg")

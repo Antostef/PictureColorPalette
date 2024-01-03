@@ -1,26 +1,17 @@
 import PySimpleGUI as sg
 
-"""
-    Demo - Element List
-
-    All elements shown in 1 window as simply as possible.
-
-    Copyright 2022 PySimpleGUI
-"""
-
+from processing.processing import get_colors_from_picture
 
 use_custom_titlebar = True if sg.running_trinket() else False
 
 def make_window(theme=None):
-
     NAME_SIZE = 23
-
 
     def name(name):
         dots = NAME_SIZE-len(name)-2
         return sg.Text(name + ' ' + '•'*dots, size=(NAME_SIZE,1), justification='r',pad=(0,0), font='Courier 10')
 
-    sg.theme(theme)
+    sg.theme("Tan")
 
     # NOTE that we're using our own LOCAL Menu element
     if use_custom_titlebar:
@@ -34,14 +25,11 @@ def make_window(theme=None):
     treedata.Insert("", '_B_', 'B', [])
     treedata.Insert("_A_", '_A1_', 'Sub Item 1', ['can', 'be', 'anything'], )
 
-    
-    # Note - LOCAL Menu element is used (see about for how that's defined)
     layout = [
-            # [Menu([['File', ['Exit']], ['Edit', ['Edit Me', ]]],  k='-CUST MENUBAR-',p=0)],
-            [sg.T('Color Palette maker', font='_ 14', justification="l", expand_x=True)],
-            [sg.FileBrowse('import your image', button_color="grey", font="_ 16")],
-            [sg.Image(filename=r"C:\Users\antod\code\PictureColorPalette\src\out\color_palette.png", )],
-            #   [sg.Col(layout_l, p=0), sg.Col(layout_r, p=0)]]
+            [sg.T('Color Palette Maker', font='_ 14', justification="l", expand_x=True)],
+            [sg.FileBrowse('import your image', button_color="grey", font="_ 16", key="import_img", enable_events=True)],
+            [sg.Graph(canvas_size=(500, 500), graph_bottom_left=(0, 0), graph_top_right=(500, 500), enable_events=True, drag_submits=True, key="graph", expand_x=True, expand_y=True, visible=False)],
+            [sg.Button("Show image", key="btn")]
     ]
 
     window = sg.Window('Color Palette', layout, finalize=True, right_click_menu=sg.MENU_RIGHT_CLICK_EDITME_VER_EXIT, keep_on_top=False, use_custom_titlebar=use_custom_titlebar)
@@ -56,21 +44,18 @@ window = make_window()
 
 while True:
     event, values = window.read()
-    # sg.Print(event, values)
+
     if event == sg.WIN_CLOSED or event == 'Exit':
         break
+    
+    if event == "btn":
+        window["graph"].update(visible=True)
+        window["graph"].draw_image(filename=r"C:\Users\antod\code\PictureColorPalette\src\out\color_palette.png", location=(0, 500))
+        
+    if event == "import_img":
+        img_path = values.get("import_img")
+        if img_path is not None:
+            get_colors_from_picture(img_path)
+        
 
-    if values['-COMBO-'] != sg.theme():
-        sg.theme(values['-COMBO-'])
-        window.close()
-        window = make_window()
-    if event == '-USE CUSTOM TITLEBAR-':
-        use_custom_titlebar = values['-USE CUSTOM TITLEBAR-']
-        sg.set_options(use_custom_titlebar=use_custom_titlebar)
-        window.close()
-        window = make_window()
-    if event == 'Edit Me':
-        sg.execute_editor(__file__)
-    elif event == 'Version':
-        sg.popup_scrolled(__file__, sg.get_versions(), keep_on_top=True, non_blocking=True)
 window.close()

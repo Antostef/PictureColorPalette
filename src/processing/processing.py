@@ -186,5 +186,3 @@ def get_colors_from_picture(url: str = "", number_of_colors: int = 5):
             create_color_palette_file(normalize(sorted_colors_by_count[:number_of_colors], 100, 2))
         else:
             create_color_palette_image(normalize(sorted_colors_by_count[:number_of_colors], 500, 0))
-
-get_colors_from_picture(r"C:\Users\antod\code\PictureColorPalette\src\img\knowyourself.jpg")

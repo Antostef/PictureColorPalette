@@ -47,7 +47,7 @@ def add_rgb_on_color_band(color_band: list[tuple], width_height) -> list[tuple]:
     Returns:
         list[tuple]: color band with rgb color tag on it
     """
-    white, black, grey = (0, 0, 0), (255, 255, 255), (192, 192, 192)
+    white, black = (0, 0, 0), (255, 255, 255)
     line, column = 7, 11
     letter_height = len(letters_and_numbers.get("r"))
     letter_width = len(letters_and_numbers.get("r")[0])
@@ -60,8 +60,6 @@ def add_rgb_on_color_band(color_band: list[tuple], width_height) -> list[tuple]:
                     try:
                         if int(k) == 1:
                             color_band[line*width_height + column] = white
-                        elif int(k) == 2:
-                            color_band[line*width_height + column] = grey
                         else:
                             color_band[line*width_height + column] = black
                     except:
@@ -84,9 +82,7 @@ def round_pixel_color(pixel: tuple, step: int=16) -> tuple:
  
     Args:
         pixel (tuple): tuple representing a pixel color in RGB (e.g. (0, 0, 0) for a black pixel)
-        step (int, optional): int that should be given a base 10 number that represents an octet where only
-            one bit has the value 1 to function as intended.
-            A lower number will make the program run much slower. Defaults to 16.
+        step (int, optional): int that should be given a base 10 number that represents an octet where only one bit has the value 1 to function as intended. A lower number will make the program run much slower. Defaults to 16.
 
     Returns:
         tuple: returns the rounded color, rounds color to the lower bound.
@@ -120,19 +116,22 @@ def normalize(color_list: list[tuple], per: int, rounding: int) -> list[tuple]:
 
 
 def create_color_palette_image(colors: list[tuple]):
+    """This function creates the image and saves it in the application folder, creating each color band then adding the rgb color tag on it.
+
+    Args:
+        colors (list[tuple]): _description_
+    """
     wh = 500
     im = Image.new(mode="RGB", size=(wh, wh))
     pixels = []
     start, end = 0, 0
-
     for color in colors:
         rgb_tuple, percentage = color
-        size = round(percentage) * wh
+        size = round(percentage * 5) * wh
         end += size
-        pixels[start: end] = add_rgb_on_color_band([rgb_tuple] * size, wh)
+        pixels[start:end] = add_rgb_on_color_band([rgb_tuple] * size, wh)
         start = end + 1
-
-    im.putdata(pixels)
+    im.putdata(pixels[:wh*wh])
 
     im.save("src\out\color_palette.png", bitmap_format="png")
 
@@ -164,14 +163,14 @@ def create_color_palette_file(colors: list[tuple]):
             f.write(f"{color[0]};{color[1]}\n")
 
 
-def get_colors_from_picture(url: str = "", number_of_colors: int = 5):
+def get_colors_from_picture(url: str = "", number_of_colors: int = 5, step: int=16, as_a_file: bool=False):
     folder_cleanup()
     with Image.open(url, "r") as img:
         pix_val = list(img.getdata())
 
         colors_counted = defaultdict(int)
         for i in pix_val:
-            rounded_pixel = round_pixel_color(i)
+            rounded_pixel = round_pixel_color(i, step=step)
 
             if colors_counted.get(rounded_pixel):
                 colors_counted[rounded_pixel] += 1
@@ -180,9 +179,9 @@ def get_colors_from_picture(url: str = "", number_of_colors: int = 5):
 
         sorted_colors_by_count = sorted(colors_counted.items(), key=lambda item:item[1], reverse=True)
 
-        if number_of_colors > 5:
+        if as_a_file:
             if number_of_colors > len(sorted_colors_by_count):
                 create_color_palette_file(normalize(sorted_colors_by_count, 100, 2))
             create_color_palette_file(normalize(sorted_colors_by_count[:number_of_colors], 100, 2))
         else:
-            create_color_palette_image(normalize(sorted_colors_by_count[:number_of_colors], 500, 0))
+            create_color_palette_image(normalize(sorted_colors_by_count[:number_of_colors], 100, 0))
